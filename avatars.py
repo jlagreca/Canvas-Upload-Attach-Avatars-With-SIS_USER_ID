@@ -26,7 +26,7 @@ log_filename = 'log.txt'    # This is the name of the file that will receive all
                             # script output 
                             # Example: '/Users/ianm/Documents/Schools/IMU/log.txt',
                             # relative to working_path
-missing_filename = 'missing.txt' #lets output a file with all the missing users. This will be a list of SIS_IDs
+missing_filename = 'missing.txt' #lets woutput a file with all the missing users. This will be a list of SIS_IDs
 
 domain = 'YOURSUBDOMAIN.instructure.com'
 access_token = "YOURTOKEN"
@@ -49,10 +49,11 @@ def log(str_or_obj):
   log_file.write("\n")
   print(st)
 
-def missing(str_or_obj):
-  st = '{0}'.format(pprint.pformat(str_or_obj))
-  missing_file.write(st)
+def missing(miss_str_or_obj):
+  miss = '{0}'.format(pprint.pformat(miss_str_or_obj))
+  missing_file.write(miss)
   missing_file.write("\n")
+
 
 for user_image in csv_file_reader:
 
@@ -126,8 +127,8 @@ for user_image in csv_file_reader:
           log('success uploading user avatar for {0}'.format(user_image['user_id']))
 
   else:
-    log('The user with sis_user_id:{0} is not yet in Canvas. Please make sure you add them before re-running the avatar script'.format(user_image['user_id']))
     missing('{0}'.format(user_image['user_id']))
+    log('The user with sis_user_id:{0} is not yet in Canvas. Please make sure you add them before re-running the avatar script'.format(user_image['user_id']))
 
 print 'all done. Please check the log.txt and missing.txt files to see if anything went pear shaped'
 
