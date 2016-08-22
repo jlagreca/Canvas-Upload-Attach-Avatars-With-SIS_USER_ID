@@ -5,6 +5,7 @@ import json, collections
 import mimetypes
 import pprint
 
+
 working_path = './' # Base working path of this script, where everything will be housed
 
 csv_filename = 'images.csv' # Example: 'API_Testing/users_provisioning.csv', relative to
@@ -13,50 +14,49 @@ csv_filename = 'images.csv' # Example: 'API_Testing/users_provisioning.csv', rel
                             #   - user_id 
                             #     the sis id of the user
                             #   - image_filename
-                            #     the name of the image file, relative to the working path folder
+                            #     the name of the image file
                             #   - image_filetype 
                             #     the filetype of the image.  This will be something like
                             #     jpeg, png, gif. This field is needed right now because
                             #     the script does not auto-detect the filetype
-                            
+                      
 images_path = 'avatars/'  # This is the name of the folder than houses the images.  It
                          # should be relative to the working_path
 log_filename = 'log.txt'    # This is the name of the file that will receive all of the
                             # script output 
                             # Example: '/Users/ianm/Documents/Schools/IMU/log.txt',
                             # relative to working_path
+missing_filename = 'missing.txt' #lets output a file with all the missing users. This will be a list of SIS_IDs
 
-domain = 'SOMETHING.instructure.com'
-access_token = "SOMETOKEN"
+domain = 'YOURSUBDOMAIN.instructure.com'
+access_token = "YOURTOKEN"
 
 ##############################################################################
-##############################################################################
-################ Don't edit anything past here unless you know what you are doing.
-################ NOTE: No offense, you probably do know what you're doing.  This is for
-################ those that do not.  
 
 
 header = {'Authorization' : 'Bearer {0}'.format(access_token)}
 
 csv_file_reader = csv.DictReader(open(working_path+csv_filename,'rb'))
 
-#r = re.compile("files/(\d+)/create")
-
 valid_mimetypes = ('image/jpeg','image/png','image/gif')
-#valid_mimetypes = ('image/png','image/gif')
 
 log_file = open('{0}{1}'.format(working_path,log_filename),'w+')
+missing_file = open('{0}{1}'.format(working_path, missing_filename),'w+')
+
 def log(str_or_obj):
   st = '{0}'.format(pprint.pformat(str_or_obj))
   log_file.write(st)
   log_file.write("\n")
   print(st)
 
+def missing(str_or_obj):
+  st = '{0}'.format(pprint.pformat(str_or_obj))
+  missing_file.write(st)
+  missing_file.write("\n")
 
 for user_image in csv_file_reader:
-  #file_id = 47467288 
-  file_id = None
 
+  file_id = None
 
   #ADD USER CHECK LOOP... IF exist then loop
   test_api_url = "https://{domain}/api/v1/users/self".format(domain=domain)
@@ -89,7 +89,7 @@ for user_image in csv_file_reader:
     json_res = json.loads(res.text,object_pairs_hook=collections.OrderedDict)
 
     # Step 2:  Upload data
-
+  
     files = {'file':open(image_path,'rb').read()}
     
     _data = json_res.items()
@@ -111,6 +111,7 @@ for user_image in csv_file_reader:
     log("upload confirmed...nicely done!")
 
     # Make api call to set avatar image to the token of the uploaded imaged (file_id)
+
     params = { 'as_user_id':'sis_user_id:{0}'.format(user_image['user_id'])}
     avatar_options = requests.get("https://%s/api/v1/users/sis_user_id:%s/avatars"%(domain,'{0}'.format(user_image['user_id'])),headers=header,params=params)
     for ao in avatar_options.json():
@@ -123,7 +124,10 @@ for user_image in csv_file_reader:
         set_avatar_user = requests.put("https://%s/api/v1/users/sis_user_id:%s"%(domain,'{0}'.format(user_image['user_id'])),headers=header,params=params)
         if set_avatar_user.status_code == 200:
           log('success uploading user avatar for {0}'.format(user_image['user_id']))
-        #pprint(set_avatar_user)
 
+  else:
+    log('The user with sis_user_id:{0} is not yet in Canvas. Please make sure you add them before re-running the avatar script'.format(user_image['user_id']))
+    missing('{0}'.format(user_image['user_id']))
 
- 
+print 'all done. Please check the log.txt and missing.txt files to see if anything went pear shaped'
+
